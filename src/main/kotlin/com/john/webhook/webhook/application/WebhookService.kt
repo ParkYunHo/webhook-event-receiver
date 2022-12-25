@@ -5,6 +5,7 @@ import com.john.webhook.common.constants.GithubConstants
 import com.john.webhook.common.exception.BadRequestException
 import com.john.webhook.common.exception.InternalServerErrorException
 import com.john.webhook.common.exception.NotSupportedActionTypeException
+import com.john.webhook.common.utils.GithubUtils
 import com.john.webhook.webhook.application.port.`in`.IssueCommentUseCase
 import com.john.webhook.webhook.application.port.`in`.PullRequestReviewCommentUseCase
 import com.john.webhook.webhook.application.port.`in`.PullRequestReviewUseCase
@@ -35,43 +36,34 @@ class WebhookService(
 
     override fun processPullRequest(payload: String, channel: String) {
         try{
-            val jsonNode = objectMapper.readTree(payload)
+            val info = GithubUtils.parse(payload)
 
-            val actionType = jsonNode.at(GithubConstants.GithubPayloadPath.ACTION_TYPE.code).asText()
-            val title = jsonNode.at(GithubConstants.GithubPayloadPath.TITLE.code).asText()
-            val assignee = jsonNode.at(GithubConstants.GithubPayloadPath.ASSIGNEE.code).asText()
-            val reviewer = jsonNode.at(GithubConstants.GithubPayloadPath.REVIEWER.code).asText()
-            val gitLink = jsonNode.at(GithubConstants.GithubPayloadPath.URL.code).asText()
-            val repoName = jsonNode.at(GithubConstants.GithubPayloadPath.REPO_NAME.code).asText()
-            val base_branch = jsonNode.at(GithubConstants.GithubPayloadPath.BASE_BRANCH.code).asText()
-
-            if(!base_branch.equals("master")){
+            if(!info.baseBranch.equals("master")) {
                 return
             }
 
-            when(actionType) {
+            when(info.actionType) {
                 GithubConstants.GithubActionType.PULL_REQUEST_ACTION_TYPE_OPENED.code -> {
                     val message = GithubConstants.GithubMessageTemplate.PULL_REQUEST_DEFAULT_TEMPLATE.code.formatted(
-                        GithubConstants.GithubMessageType.CREATED_MESSAGE.code, repoName, assignee, title, gitLink
+                        GithubConstants.GithubMessageType.CREATED_MESSAGE.code, info.repoName, info.assignee, info.title, info.gitLink
                     )
                     notificationPort.notify(channel, message)
                 }
                 GithubConstants.GithubActionType.PULL_REQUEST_ACTION_TYPE_CLOSED.code -> {
-                    val merged = jsonNode.at(GithubConstants.GithubPayloadPath.MERGED.code).asText()
-                    if("true".equals(merged)){
+                    if(info.merged.equals("true")){
                         val message = GithubConstants.GithubMessageTemplate.PULL_REQUEST_DEFAULT_TEMPLATE.code.formatted(
-                            GithubConstants.GithubMessageType.MERGED_MESSAGE.code, repoName, assignee, title, gitLink
+                            GithubConstants.GithubMessageType.MERGED_MESSAGE.code, info.repoName, info.assignee, info.title, info.gitLink
                         )
                         notificationPort.notify(channel, message)
                     }else{
                         val message = GithubConstants.GithubMessageTemplate.PULL_REQUEST_DEFAULT_TEMPLATE.code.formatted(
-                            GithubConstants.GithubMessageType.CLOSED_MESSAGE.code, repoName, assignee, title, gitLink
+                            GithubConstants.GithubMessageType.CLOSED_MESSAGE.code, info.repoName, info.assignee, info.title, info.gitLink
                         )
                         notificationPort.notify(channel, message)
                     }
                 }
                 GithubConstants.GithubActionType.PULL_REQUEST_ACTION_TYPE_REVIEW_REQUESTED.code -> {
-                    val message = GithubConstants.GithubMessageTemplate.PULL_REQUEST_REVIEW_REQUESTED_TEMPLATE.code.formatted(repoName, assignee, title, gitLink)
+                    val message = GithubConstants.GithubMessageTemplate.PULL_REQUEST_REVIEW_REQUESTED_TEMPLATE.code.formatted(info.repoName, info.assignee, info.title, info.gitLink)
                     notificationPort.notify(channel, message)
                 }
                 else -> throw NotSupportedActionTypeException()

@@ -49,7 +49,7 @@ class NotificationAdapter(
     private fun slack(message: String) {
         try{
             val uriComponents = UriComponentsBuilder
-                .fromHttpUrl(slackUrl)
+                .fromHttpUrl(slackUrl + "/services/T04GGF8E1NE/B04GGFE2NNN/yHTNWu5ZyPsAOUEFZzdTpB1e")
                 .build(false)
 
             val bodyMap = mapOf(
@@ -57,7 +57,8 @@ class NotificationAdapter(
                 "text" to message
             )
 
-            webClient.post()
+            log.info(" >>> [slack] request - url: {}, body: {}", uriComponents.toUriString(), bodyMap.toString())
+            val response = webClient.post()
                 .uri(uriComponents.toUri())
                 .contentType(MediaType.APPLICATION_JSON)
                 .body(BodyInserters.fromValue(bodyMap))
@@ -71,12 +72,13 @@ class NotificationAdapter(
                      }
                 }
                 .block()
+            log.info(" >>> [slack] response - status: {}", response.statusCode)
 
         }catch (be: BadRequestException) {
-            log.info("BadRequestException - message: {}", be.message)
+            log.info(">>> [slack] BadRequestException - message: {}", be.message)
             throw be
         }catch(e: Exception){
-            log.info("Exception - message: {}", e.message)
+            log.info(">>> [slack] Exception - message: {}", e.message)
             throw e
         }
     }
