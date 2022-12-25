@@ -22,17 +22,6 @@ class WebhookService(
     private val objectMapper: ObjectMapper,
     private val notificationPort: NotificationPort
 ): PullRequestUseCase, PullRequestReviewUseCase, PullRequestReviewCommentUseCase, IssueCommentUseCase {
-    override fun processIssueComment(payload: String, channel: String) {
-
-    }
-
-    override fun processPullRequestReviewComment(payload: String, channel: String) {
-
-    }
-
-    override fun processPullRequestReview(payload: String, channel: String) {
-
-    }
 
     override fun processPullRequest(payload: String, channel: String) {
         try{
@@ -72,6 +61,58 @@ class WebhookService(
             throw be
         }catch (e: Exception) {
             throw InternalServerErrorException()
+        }
+    }
+
+    override fun processPullRequestReview(payload: String, channel: String) {
+        val info = GithubUtils.parse(payload)
+
+        if(!info.baseBranch.equals("master")) {
+            return
+        }
+
+        when(info.actionType) {
+            GithubConstants.GithubActionType.PULL_REQUEST_REVIEW_ACTION_TYPE_SUBMITTED.code -> {
+                val message = GithubConstants.GithubMessageTemplate.PULL_REQUEST_REVIEW_SUBMITTED_TEMPLATE.code.formatted(info.reviewer, info.repoName, info.title, info.gitLink)
+                notificationPort.notify(channel, message)
+            }
+            else -> throw NotSupportedActionTypeException()
+        }
+    }
+
+    override fun processPullRequestReviewComment(payload: String, channel: String) {
+        val info = GithubUtils.parse(payload)
+
+        if(!info.baseBranch.equals("master")) {
+            return
+        }
+
+        when(info.actionType) {
+            GithubConstants.GithubActionType.PULL_REQUEST_REVIEW_COMMENT_ACTION_TYPE_EDITED.code -> {
+                val message = GithubConstants.GithubMessageTemplate.PULL_REQUEST_REVIEW_COMMENT_EDITED_TEMPLATE.code.formatted(info.repoName, info.reviewer, info.title, info.gitLink)
+                notificationPort.notify(channel, message)
+            }
+            else -> throw NotSupportedActionTypeException()
+        }
+    }
+
+    override fun processIssueComment(payload: String, channel: String) {
+        val info = GithubUtils.parse(payload)
+
+        if(!info.baseBranch.equals("master")) {
+            return
+        }
+
+        when(info.actionType) {
+            GithubConstants.GithubActionType.ISSUE_COMMENT_ACTION_TYPE_CREATED.code -> {
+                val message = GithubConstants.GithubMessageTemplate.ISSUE_COMMENT_CREATED_TEMPLATE.code.formatted(info.repoName, info.reviewer, info.title, info.gitLink)
+                notificationPort.notify(channel, message)
+            }
+            GithubConstants.GithubActionType.ISSUE_COMMENT_ACTION_TYPE_EDITED.code -> {
+                val message = GithubConstants.GithubMessageTemplate.ISSUE_COMMENT_EDITED_TEMPLATE.code.formatted(info.repoName, info.reviewer, info.title, info.gitLink)
+                notificationPort.notify(channel, message)
+            }
+            else -> throw NotSupportedActionTypeException()
         }
     }
 }

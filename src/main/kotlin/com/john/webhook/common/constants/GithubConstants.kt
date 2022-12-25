@@ -15,7 +15,14 @@ class GithubConstants {
     enum class GithubActionType(val code: String) {
         PULL_REQUEST_ACTION_TYPE_OPENED("opened"),
         PULL_REQUEST_ACTION_TYPE_CLOSED("closed"),
-        PULL_REQUEST_ACTION_TYPE_REVIEW_REQUESTED("review_requested")
+        PULL_REQUEST_ACTION_TYPE_REVIEW_REQUESTED("review_requested"),
+
+        PULL_REQUEST_REVIEW_ACTION_TYPE_SUBMITTED("submitted"),
+
+        PULL_REQUEST_REVIEW_COMMENT_ACTION_TYPE_EDITED("edited"),
+
+        ISSUE_COMMENT_ACTION_TYPE_CREATED("created"),
+        ISSUE_COMMENT_ACTION_TYPE_EDITED("edited")
     }
 
     enum class GithubPayloadPath(val code: String) {
